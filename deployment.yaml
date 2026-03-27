@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ludo-game
+  namespace: ludo-game
+  labels:
+    app: ludo-game
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ludo-game
+  template:
+    metadata:
+      labels:
+        app: ludo-game
+    spec:
+      containers:
+      - name: ludo-game
+        image: ghcr.io/yourusername/ludo-game:latest
+        ports:
+        - containerPort: 80
+        env:
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: ludo-game-config
+              key: db_host
+        - name: REDIS_HOST
+          value: redis-service
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ludo-game-service
+  namespace: ludo-game
+spec:
+  selector:
+    app: ludo-game
+  ports:
+  - port: 80
+    targetPort: 80
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ludo-game-ingress
+  namespace: ludo-game
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  tls:
+  - hosts:
+    - ludo-game.com
+    secretName: ludo-game-tls
+  rules:
+  - host: ludo-game.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ludo-game-service
+            port:
+              number: 80

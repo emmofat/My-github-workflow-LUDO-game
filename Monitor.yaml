@@ -1,0 +1,25 @@
+# .github/workflows/monitoring.yml
+name: Monitor Deployment
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # Every 5 minutes
+  workflow_dispatch:
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check production health
+        run: |
+          if ! curl -f https://ludo-game.com/health; then
+            echo "Health check failed!"
+            exit 1
+          fi
+      
+      - name: Send alert if failed
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          channel-id: 'alerts'
+          slack-message: "⚠️ Ludo Game production health check failed!"

@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  ludo-game:
+    build:
+      context: .
+      target: ${TARGET:-production}
+    image: ludo-game:latest
+    ports:
+      - "8080:80"
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - GAME_CONFIG=/app/config.json
+    volumes:
+      - ./config:/app/config:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  ludo-game-dev:
+    build:
+      context: .
+      target: development
+    image: ludo-game:dev
+    ports:
+      - "3000:3000"
+      - "9229:9229"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run dev
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ludodb
+      POSTGRES_USER: ludo
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  redis-data:
+  postgres-data:
