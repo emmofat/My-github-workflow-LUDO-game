@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile for Ludo Game
+# Multi-stage Dockerfile for Ludo Game MINE
 # Stage 1: Build stage
 FROM node:18-alpine AS builder
 
